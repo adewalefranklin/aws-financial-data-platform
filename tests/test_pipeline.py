@@ -1,6 +1,7 @@
 import pytest
 from src.project_pipeline.pipeline import FinnhubPipeline
 
+
 def test_pipeline_run_success(mocker, monkeypatch):
     # Set environment variables
     monkeypatch.setenv("FINNHUB_API_KEY", "fake_key")
@@ -24,4 +25,7 @@ def test_pipeline_run_success(mocker, monkeypatch):
     pipeline = FinnhubPipeline()
     result = pipeline.run("AAPL")
 
-    assert result == "s3://fake_bucket/fake_prefix/year=2026/month=07/day=06/symbol=AAPL/data.json"
+    assert (
+        result
+        == "s3://fake_bucket/fake_prefix/year=2026/month=07/day=06/symbol=AAPL/data.json"
+    )
