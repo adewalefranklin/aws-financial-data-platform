@@ -1,6 +1,7 @@
 from src.project_pipeline.extract import Extract
 import pytest
 
+
 def test_extract_success(mocker, monkeypatch):
     monkeypatch.setenv("FINNHUB_API_KEY", "fake_key")
     monkeypatch.setenv("FINNHUB_BASE_URL", "http://fakeurl.com")
@@ -10,8 +11,7 @@ def test_extract_success(mocker, monkeypatch):
     fake_response.json.return_value = {"data": "test_data"}
 
     mock_get = mocker.patch(
-        "src.project_pipeline.extract.requests.get",
-        return_value=fake_response
+        "src.project_pipeline.extract.requests.get", return_value=fake_response
     )
 
     extractor = Extract()
@@ -21,9 +21,6 @@ def test_extract_success(mocker, monkeypatch):
 
     mock_get.assert_called_once_with(
         "http://fakeurl.com/quote",
-        params={
-            "symbol": "AAPL",
-            "token": "fake_key"
-        },
-        timeout=30
+        params={"symbol": "AAPL", "token": "fake_key"},
+        timeout=30,
     )

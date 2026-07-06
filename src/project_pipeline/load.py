@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import json
 from botocore.exceptions import ClientError, BotoCoreError
 
+
 class S3Load:
     def __init__(self):
         self.logger = get_logger(__name__)
@@ -14,7 +15,7 @@ class S3Load:
             "s3",
             aws_access_key_id=self.config.aws_access_key_id,
             aws_secret_access_key=self.config.aws_secret_access_key,
-            region_name=self.config.aws_region
+            region_name=self.config.aws_region,
         )
         self.s3_bucket_name = self.config.aws_bucket_name
         self.s3_prefix = self.config.aws_s3_prefix
@@ -28,31 +29,27 @@ class S3Load:
         month = now.strftime("%m")
         day = now.strftime("%d")
         timestamp = now.strftime("%Y%m%dT%H%M%SZ")
-        payload = {
-            "symbol": symbol,
-            "timestamp": timestamp,
-            "data": data
-        }
+        payload = {"symbol": symbol, "timestamp": timestamp, "data": data}
         s3_key = (
-                    f"{self.s3_prefix}/"
-                    f"year={year}/"
-                    f"month={month}/"
-                    f"day={day}/"
-                    f"symbol={symbol}/"
-                    f"{timestamp}.json"
-                )
+            f"{self.s3_prefix}/"
+            f"year={year}/"
+            f"month={month}/"
+            f"day={day}/"
+            f"symbol={symbol}/"
+            f"{timestamp}.json"
+        )
 
         try:
             self.s3_client.put_object(
                 Bucket=self.s3_bucket_name,
                 Key=s3_key,
                 Body=json.dumps(payload, indent=4).encode("utf-8"),
-                ContentType="application/json"
+                ContentType="application/json",
             )
-            self.logger.info(f"Successfully loaded data to S3 for symbol: {symbol} at {s3_key}")
+            self.logger.info(
+                f"Successfully loaded data to S3 for symbol: {symbol} at {s3_key}"
+            )
             return s3_key
         except (ClientError, BotoCoreError) as e:
             self.logger.error(f"Error loading data to S3 for symbol: {symbol} - {e}")
             raise LoadError(f"Error loading data to S3 for symbol: {symbol}") from e
-
-

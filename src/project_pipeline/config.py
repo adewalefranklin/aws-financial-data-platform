@@ -31,14 +31,10 @@ class Config:
                 "AWS_SECRET_ACCESS_KEY is not set in the environment variables."
             )
         if not self.aws_region:
-            raise ConfigError(
-                "AWS_REGION is not set in the environment variables."
-            )
+            raise ConfigError("AWS_REGION is not set in the environment variables.")
         if not self.aws_bucket_name:
             raise ConfigError(
                 "AWS_BUCKET_NAME is not set in the environment variables."
             )
         if not self.aws_s3_prefix:
-            raise ConfigError(
-                "AWS_S3_PREFIX is not set in the environment variables."
-            )
+            raise ConfigError("AWS_S3_PREFIX is not set in the environment variables.")
