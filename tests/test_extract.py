@@ -1,4 +1,5 @@
 from src.project_pipeline.extract import Extract
+import pytest
 
 def test_extract_success(mocker, monkeypatch):
     monkeypatch.setenv("FINNHUB_API_KEY", "fake_key")
