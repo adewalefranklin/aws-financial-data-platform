@@ -8,6 +8,7 @@ load_dotenv()
 class Config:
     def __init__(self):
         self.finnhub_api_key = os.getenv("FINNHUB_API_KEY")
+        self.finnhub_ws_url = os.getenv("FINNHUB_WS_URL")
         self.finnhub_base_url = os.getenv("FINNHUB_BASE_URL")
         self.aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
         self.aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -17,6 +18,10 @@ class Config:
         if not self.finnhub_api_key:
             raise ConfigError(
                 "FINNHUB_API_KEY is not set in the environment variables."
+            )
+        if not self.finnhub_ws_url:
+            raise ConfigError(
+                "FINNHUB_WS_URL is not set in the environment variables."
             )
         if not self.finnhub_base_url:
             raise ConfigError(
