@@ -20,9 +20,7 @@ class Config:
                 "FINNHUB_API_KEY is not set in the environment variables."
             )
         if not self.finnhub_ws_url:
-            raise ConfigError(
-                "FINNHUB_WS_URL is not set in the environment variables."
-            )
+            raise ConfigError("FINNHUB_WS_URL is not set in the environment variables.")
         if not self.finnhub_base_url:
             raise ConfigError(
                 "FINNHUB_BASE_URL is not set in the environment variables."
