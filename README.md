@@ -1,4 +1,4 @@
-# AWS Financial Market Data Platform
+# Real-Time Financial Data Platform on AWS
 
 ## Overview
 
