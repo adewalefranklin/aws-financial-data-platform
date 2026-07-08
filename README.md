@@ -1,116 +1,141 @@
-# Financial Data Engineering Platform
+# AWS Financial Market Data Platform
 
 ## Overview
 
-An end-to-end AWS Data Engineering platform that ingests real-time financial market data from the Finnhub API, stores raw data in Amazon S3, transforms it using Apache Spark on Amazon EMR, and loads analytics-ready Parquet data into Amazon Redshift.
+An end-to-end cloud-native Data Engineering platform built on AWS that ingests financial market data from the Finnhub REST API and Finnhub WebSocket, processes both batch and streaming workloads, stores data in Amazon S3, transforms datasets using Apache Spark on Amazon EMR, and loads analytics-ready data into Amazon Redshift.
 
-The project demonstrates production-style cloud data engineering practices including:
-
-- Data ingestion
-- Data lake architecture
-- Apache Spark ETL
-- Amazon EMR
-- Amazon S3
-- Amazon Redshift
-- IAM Security
-- Data partitioning
-- Columnar storage (Parquet)
+The project demonstrates modern Data Engineering practices including distributed data processing, real-time streaming, data lake architecture, and cloud-native analytics.
 
 ---
 
-## Architecture
+# Features
 
-                         +----------------------+
-                         |    Finnhub API       |
-                         +----------+-----------+
-                                    |
-                                    |
-                           Python Extraction
-                                    |
-                                    |
-                    +---------------v---------------+
-                    |        Amazon S3              |
-                    |                               |
-                    |      raw/finnhub/quotes       |
-                    +---------------+---------------+
-                                    |
-                                    |
-                            Apache Spark
-                              Amazon EMR
-                                    |
-            ------------------------------------------------
-            |                                              |
-      Flatten JSON                                Type Conversion
-            |                                              |
-            --------------------+---------------------------
-                                 |
-                           Partition Data
-                    year/month/day/symbol
-                                 |
-                                 |
-                     Write Parquet Files
-                                 |
-                                 |
-                    +------------v-------------+
-                    |        Amazon S3         |
-                    |                          |
-                    | processed/finnhub/quotes |
-                    +------------+-------------+
-                                 |
-                                 |
-                        Amazon Redshift
-                                 |
-                          COPY (PARQUET)
-                                 |
-                                 |
-                      Bronze Analytics Table
-                                 |
-                                 |
-                        SQL Analytics Layer
+## Batch Processing
+
+- REST API ingestion
+- Raw JSON landing in Amazon S3
+- Apache Spark transformations on Amazon EMR
+- JSON to Parquet conversion
+- Partitioned Data Lake
+- Amazon Redshift loading
+
+## Streaming Processing
+
+- Finnhub WebSocket integration
+- Amazon Kinesis Data Streams
+- Python Producer
+- Python Consumer
+- Real-time S3 landing
+- Streaming-ready architecture
+
+## Engineering Practices
+
+- Modular project structure
+- IAM Roles and Policies
+- Apache Parquet
+- Partitioned datasets
+- Dockerized development
+- Git version control
+- Production-style debugging
 
 ---
 
-## Technology Stack
+# Architecture
+
+```text
+                               +----------------------+
+                               |    Finnhub REST API  |
+                               +----------+-----------+
+                                          |
+                                          |
+                                   Python ETL
+                                          |
+                                          |
+                               Amazon S3 Raw Layer
+                                          |
+                                          |
+                                Apache Spark (EMR)
+                                          |
+                                  JSON → Parquet
+                                          |
+                                          |
+                           Amazon S3 Processed Layer
+                                          |
+                                          |
+                                Amazon Redshift
+                                          |
+                                          |
+                                   SQL Analytics
+
+
+
+                               +----------------------+
+                               | Finnhub WebSocket    |
+                               +----------+-----------+
+                                          |
+                                          |
+                                  Python Producer
+                                          |
+                                          |
+                             Amazon Kinesis Data Stream
+                                          |
+                                          |
+                                  Python Consumer
+                                          |
+                                          |
+                           Amazon S3 Streaming Layer
+```
+
+---
+
+# Technology Stack
 
 | Technology | Purpose |
-|------------|----------|
-| Python | Data Extraction |
-| Finnhub API | Market Data |
+|------------|---------|
+| Python | Data Engineering |
+| Finnhub REST API | Batch Ingestion |
+| Finnhub WebSocket | Real-Time Streaming |
 | Amazon S3 | Data Lake |
 | Apache Spark | Distributed Processing |
 | Amazon EMR | Spark Cluster |
-| Parquet | Columnar Storage |
+| Amazon Kinesis | Streaming Platform |
+| Apache Parquet | Columnar Storage |
 | Amazon Redshift | Data Warehouse |
 | SQL | Analytics |
 | IAM | Security |
-| VS Code | Development |
-| Git/GitHub | Version Control |
+| Docker | Development |
+| Git & GitHub | Version Control |
+| VS Code | IDE |
 
 ---
 
-## Project Structure
+# Project Structure
 
+```text
 aws-ecosystem-project
 │
 ├── src
-│     └── project_pipeline
+│   └── project_pipeline
 │
-├── spark_jobs
-│     ├── quotes_to_parquet.py
-│     ├── inspect_quotes_parquet.py
-│     ├── test_emr.py
-│     └── test_read_json.py
+├── emr_spark
+│   ├── quotes_to_parquet.py
+│   ├── inspect_quotes_parquet.py
+│   └── README.md
+│
+├── kinesis
+│   ├── producer.py
+│   ├── consumer.py
+│   ├── config.py
+│   └── README.md
 │
 ├── redshift
-│     ├── schema
-│     │      create_processed_quotes.sql
-│     │
-│     ├── copy
-│     │      copy_processed_quotes.sql
-│     │
-│     ├── analytics
-│     │
-│     └── README.md
+│   ├── schema
+│   ├── copy
+│   ├── analytics
+│   └── validation
+│   └── README.md
+│
+├── screenshots
 │
 ├── tests
 │
@@ -119,150 +144,132 @@ aws-ecosystem-project
 ├── requirements.txt
 │
 └── README.md
-
----
-
-## Data Flow
-
-### 1. Extract
-
-Python requests live stock quotes from Finnhub.
-
-Example:
-
-AAPL
-
-MSFT
-
-NVDA
-
----
-
-### 2. Load
-
-Raw JSON is stored inside S3.
-
-```
-raw/
-    finnhub/
-        quotes/
 ```
 
 ---
 
-### 3. Transform
+# Batch Data Flow
 
-Apache Spark running on Amazon EMR
-
-- Reads JSON
-- Flattens nested structures
-- Converts to Parquet
-- Partitions dataset
-
-```
-processed/
-    finnhub/
-        quotes/
-            year=2026/
-                month=7/
-                    day=6/
-                        symbol=AAPL/
-                        symbol=MSFT/
-                        symbol=NVDA/
-```
-
----
-
-### 4. Load into Redshift
-
-Amazon Redshift loads Parquet directly from S3 using COPY.
-
----
-
-## Spark Transformation
-
-Input
-
-Nested JSON
-
-↓
-
-Flatten
-
-↓
-
-Type Casting
-
-↓
-
-Partition
-
-↓
-
+```text
+Finnhub REST API
+        │
+        ▼
+Python
+        │
+        ▼
+Amazon S3 Raw Layer
+        │
+        ▼
+Apache Spark (Amazon EMR)
+        │
+        ▼
+JSON Flattening
+        │
+        ▼
+Data Type Conversion
+        │
+        ▼
+Partitioning
+        │
+        ▼
 Parquet
+        │
+        ▼
+Amazon S3 Processed Layer
+        │
+        ▼
+Amazon Redshift
+        │
+        ▼
+Analytics
+```
 
 ---
 
-## Data Model
+# Streaming Data Flow
 
-Columns
-
-symbol
-
-timestamp
-
-current_price
-
-high_price
-
-low_price
-
-open_price
-
-previous_close_price
-
-quote_unix_time
+```text
+Finnhub WebSocket
+        │
+        ▼
+Python Producer
+        │
+        ▼
+Amazon Kinesis Data Stream
+        │
+        ▼
+Python Consumer
+        │
+        ▼
+Amazon S3 Streaming Layer
+```
 
 ---
 
-## Learning Outcomes
+# Current Data Lake Layout
 
-✔ Amazon S3
+```text
+S3
 
-✔ Apache Spark
+raw/
+└── finnhub/
+    ├── quotes/
+    └── streaming/
 
-✔ Amazon EMR
+processed/
+└── finnhub/
+    └── quotes/
 
-✔ Apache Parquet
-
-✔ Redshift COPY
-
-✔ IAM Roles
-
-✔ Distributed Processing
-
-✔ Spark Partitioning
-
-✔ Production Debugging
-
-✔ ETL Design
+scripts/
+```
 
 ---
 
-## Future Improvements
+# Processed Data Model
 
-Real-Time Streaming (Kinesis)
+| Column | Description |
+|---------|-------------|
+| symbol | Stock ticker |
+| quote_timestamp | Quote timestamp |
+| current_price | Current market price |
+| change_amount | Price change |
+| percent_change | Percentage change |
+| high_price | Daily high |
+| low_price | Daily low |
+| open_price | Opening price |
+| previous_close | Previous closing price |
+| event_timestamp | Unix event timestamp |
 
-Apache Iceberg
+---
 
-Incremental Loads
+# Learning Outcomes
 
-Airflow Orchestration
+- Amazon S3 Data Lake
+- REST API ingestion
+- WebSocket streaming
+- Apache Spark
+- Amazon EMR
+- Amazon Kinesis
+- Amazon Redshift
+- Apache Parquet
+- IAM Security
+- Distributed Processing
+- Batch ETL
+- Streaming Data Engineering
+- Production Debugging
+- Cloud Data Platform Design
 
-CloudWatch Monitoring
+---
 
-Terraform Infrastructure
+# Future Enhancements
 
-CI/CD
-
-Data Quality Validation
+- Process streaming data with Apache Spark
+- Load streaming data into Amazon Redshift
+- Analytics data mart
+- Power BI dashboards
+- Apache Airflow orchestration
+- Apache Iceberg
+- Terraform
+- CloudWatch monitoring
+- CI/CD pipeline
+- Data quality validation
