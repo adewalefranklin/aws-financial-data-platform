@@ -19,4 +19,28 @@ Finnhub WebSocket
 → Python Consumer
 → Amazon S3 Raw Streaming Layer
 
+# Kinesis Pipeline Architecture
+
+STREAMING PIPELINE
+
+Finnhub WebSocket
+        ↓
+Python Producer
+        ↓
+Amazon Kinesis Data Streams
+        ↓
+Python Consumer
+        ↓
+Amazon S3 Raw Streaming JSON
+        ↓
+Apache Spark on EMR
+        ↓
+Amazon S3 Processed Parquet
+        ↓
+Amazon Redshift
+        ↓
+Streaming Analytics Tables
+
+
+
 This module extends the platform from batch processing into real-time data ingestion.
