@@ -19,9 +19,7 @@ Finnhub WebSocket
 → Python Consumer
 → Amazon S3 Raw Streaming Layer
 
-# Kinesis Pipeline Architecture
-
-STREAMING PIPELINE
+# Kinesis Streaming Pipeline Architecture
 
 Finnhub WebSocket
         ↓
