@@ -4,7 +4,6 @@ import websocket
 
 from config import AWS_REGION, KINESIS_STREAM_NAME, FINNHUB_API_KEY, FINNHUB_WS_URL
 
-
 kinesis_client = boto3.client("kinesis", region_name=AWS_REGION)
 
 
@@ -15,9 +14,7 @@ def send_to_kinesis(record: dict):
     symbol = record.get("symbol", "UNKNOWN")
 
     response = kinesis_client.put_record(
-        StreamName=KINESIS_STREAM_NAME,
-        Data=json.dumps(record),
-        PartitionKey=symbol
+        StreamName=KINESIS_STREAM_NAME, Data=json.dumps(record), PartitionKey=symbol
     )
 
     print(f"Sent record to Kinesis: {symbol}")
@@ -55,10 +52,7 @@ def on_open(ws):
     print("WebSocket connected.")
 
     for symbol in SYMBOLS:
-        subscribe_message = {
-            "type": "subscribe",
-            "symbol": symbol
-        }
+        subscribe_message = {"type": "subscribe", "symbol": symbol}
 
         ws.send(json.dumps(subscribe_message))
         print(f"Subscribed to {symbol}")
@@ -72,7 +66,7 @@ if __name__ == "__main__":
         on_open=on_open,
         on_message=on_message,
         on_error=on_error,
-        on_close=on_close
+        on_close=on_close,
     )
 
     print("Starting Finnhub WebSocket producer...")

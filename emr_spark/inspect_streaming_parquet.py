@@ -1,10 +1,6 @@
 from pyspark.sql import SparkSession
 
-spark = (
-    SparkSession.builder
-    .appName("Inspect Streaming Trades Parquet")
-    .getOrCreate()
-)
+spark = SparkSession.builder.appName("Inspect Streaming Trades Parquet").getOrCreate()
 
 path = "s3://aws-data-engineering-platform/processed/finnhub/streaming_trades/"
 

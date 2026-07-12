@@ -3,14 +3,14 @@ from pyspark.sql.functions import col, to_timestamp, year, month, dayofmonth, ho
 
 
 def main():
-    spark = (
-        SparkSession.builder
-        .appName("Finnhub Streaming Trades To Parquet")
-        .getOrCreate()
-    )
+    spark = SparkSession.builder.appName(
+        "Finnhub Streaming Trades To Parquet"
+    ).getOrCreate()
 
     input_path = "s3://aws-data-engineering-platform/raw/finnhub/streaming/"
-    output_path = "s3://aws-data-engineering-platform/processed/finnhub/streaming_trades/"
+    output_path = (
+        "s3://aws-data-engineering-platform/processed/finnhub/streaming_trades/"
+    )
 
     print(f"Reading streaming JSON from: {input_path}")
     print(f"Writing processed Parquet to: {output_path}")
@@ -22,11 +22,11 @@ def main():
             col("symbol"),
             col("price").cast("double").alias("trade_price"),
             col("volume").cast("double").alias("trade_volume"),
-            col("event_timestamp").cast("long").alias("event_timestamp")
+            col("event_timestamp").cast("long").alias("event_timestamp"),
         )
         .withColumn(
             "trade_timestamp",
-            to_timestamp((col("event_timestamp") / 1000).cast("double"))
+            to_timestamp((col("event_timestamp") / 1000).cast("double")),
         )
         .withColumn("year", year("trade_timestamp"))
         .withColumn("month", month("trade_timestamp"))
@@ -40,8 +40,7 @@ def main():
     print(f"Record count: {trades_df.count()}")
 
     (
-        trades_df.write
-        .mode("append")
+        trades_df.write.mode("append")
         .partitionBy("year", "month", "day", "hour", "symbol")
         .parquet(output_path)
     )

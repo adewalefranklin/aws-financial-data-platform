@@ -4,3 +4,20 @@ logs/
 __pycache__/
 *.pyc
 airflow.cfg
+# Terraform local working directories
+**/.terraform/
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+
+# Terraform plan files
+*.tfplan
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json

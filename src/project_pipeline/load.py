@@ -63,9 +63,5 @@ class S3Load:
             return s3_key
 
         except (ClientError, BotoCoreError) as e:
-            self.logger.error(
-                f"Error loading data to S3 for symbol: {symbol} - {e}"
-            )
-            raise LoadError(
-                f"Error loading data to S3 for symbol: {symbol}"
-            ) from e
+            self.logger.error(f"Error loading data to S3 for symbol: {symbol} - {e}")
+            raise LoadError(f"Error loading data to S3 for symbol: {symbol}") from e

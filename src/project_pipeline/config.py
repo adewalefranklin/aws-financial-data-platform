@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 from src.project_pipeline.exceptions import ConfigError
 
-
 load_dotenv()
 
 
@@ -24,9 +23,7 @@ class Config:
             )
 
         if not self.finnhub_ws_url:
-            raise ConfigError(
-                "FINNHUB_WS_URL is not set in the environment variables."
-            )
+            raise ConfigError("FINNHUB_WS_URL is not set in the environment variables.")
 
         if not self.finnhub_base_url:
             raise ConfigError(
@@ -34,9 +31,7 @@ class Config:
             )
 
         if not self.aws_region:
-            raise ConfigError(
-                "AWS_REGION is not set in the environment variables."
-            )
+            raise ConfigError("AWS_REGION is not set in the environment variables.")
 
         if not self.aws_bucket_name:
             raise ConfigError(
@@ -44,6 +39,4 @@ class Config:
             )
 
         if not self.aws_s3_prefix:
-            raise ConfigError(
-                "AWS_S3_PREFIX is not set in the environment variables."
-            )
+            raise ConfigError("AWS_S3_PREFIX is not set in the environment variables.")
