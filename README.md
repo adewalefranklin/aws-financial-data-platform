@@ -1,6 +1,5 @@
 # Cloud-Native Real-Time Financial Data Platform on AWS
 
-
 ## Overview
 
 An end-to-end cloud-native Data Engineering platform built on AWS that ingests financial market data from the Finnhub REST API and Finnhub WebSocket, processes both batch and streaming workloads, stores raw data in Amazon S3, transforms datasets using Apache Spark on Amazon EMR, loads analytics-ready Parquet datasets into Amazon Redshift, and deploys ingestion pipelines as Docker containers on Amazon ECS using AWS Fargate.
@@ -141,8 +140,6 @@ The project demonstrates modern Data Engineering practices including cloud-nativ
                                    ▼
                     Streaming Analytics Layer
 ```
-
----
 
 ---
 
@@ -507,7 +504,8 @@ docker push <your-ecr-uri>
 
 # Project Status
 
-## ✅ Completed
+
+## Completed
 
 - REST API batch ingestion
 - WebSocket streaming ingestion
