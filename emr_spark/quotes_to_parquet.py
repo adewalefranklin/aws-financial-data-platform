@@ -2,6 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col,
     dayofmonth,
+    from_unixtime,
     lit,
     month,
     to_timestamp,
@@ -10,41 +11,88 @@ from pyspark.sql.functions import (
     year,
 )
 
-spark = SparkSession.builder.appName("FinnhubQuotesToParquet").getOrCreate()
+spark = (
+    SparkSession.builder.appName("FinnhubQuotesToIceberg")
+    .config(
+        "spark.sql.extensions",
+        "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+    )
+    .config(
+        "spark.sql.catalog.glue_catalog",
+        "org.apache.iceberg.spark.SparkCatalog",
+    )
+    .config(
+        "spark.sql.catalog.glue_catalog.catalog-impl",
+        "org.apache.iceberg.aws.glue.GlueCatalog",
+    )
+    .config(
+        "spark.sql.catalog.glue_catalog.warehouse",
+        "s3://aws-data-engineering-platform/iceberg/",
+    )
+    .config(
+        "spark.sql.catalog.glue_catalog.io-impl",
+        "org.apache.iceberg.aws.s3.S3FileIO",
+    )
+    .getOrCreate()
+)
 
-# Read raw JSON from S3
+#
+# Configuration
 
 input_path = "s3://aws-data-engineering-platform/raw/finnhub/quotes/"
 
-quotes_df = spark.read.json(input_path)
+rejected_output_path = "s3://aws-data-engineering-platform/rejected/finnhub/quotes/"
 
-# Flatten JSON
+iceberg_table = "glue_catalog.financial_platform.quotes"
+
+
+# Read raw multiline JSON from S3
+#
+
+quotes_df = (
+    spark.read.option("multiLine", "true")
+    .option("recursiveFileLookup", "true")
+    .json(input_path)
+)
+# Temporary debugging output for the current EMR run
+
+quotes_df.printSchema()
+quotes_df.show(truncate=False)
+
+
+# Flatten nested Finnhub JSON
 
 flattened_df = quotes_df.select(
     col("symbol"),
-    col("timestamp").alias("ingestion_timestamp"),
-    col("data.c").cast("double").alias("current_price"),
-    col("data.d").cast("double").alias("change_amount"),
-    col("data.dp").cast("double").alias("percent_change"),
-    col("data.h").cast("double").alias("high_price"),
-    col("data.l").cast("double").alias("low_price"),
-    col("data.o").cast("double").alias("open_price"),
-    col("data.pc").cast("double").alias("previous_close"),
-    col("data.t").cast("long").alias("event_timestamp"),
+    to_timestamp(
+        col("timestamp"),
+        "yyyyMMdd'T'HHmmssX",
+    ).alias("ingestion_timestamp"),
+    col("data.c").alias("current_price"),
+    col("data.d").alias("change"),
+    col("data.dp").alias("percent_change"),
+    col("data.h").alias("high_price"),
+    col("data.l").alias("low_price"),
+    col("data.o").alias("open_price"),
+    col("data.pc").alias("previous_close"),
+    from_unixtime(col("data.t")).cast("timestamp").alias("market_timestamp"),
 )
 
-# Convert timestamp
-
-flattened_df = flattened_df.withColumn(
-    "quote_timestamp", to_timestamp("ingestion_timestamp", "yyyyMMdd'T'HHmmss'Z'")
-)
-
-# Partition columns
+# Create partition columns
 
 flattened_df = (
-    flattened_df.withColumn("year", year("quote_timestamp"))
-    .withColumn("month", month("quote_timestamp"))
-    .withColumn("day", dayofmonth("quote_timestamp"))
+    flattened_df.withColumn(
+        "year",
+        year(col("ingestion_timestamp")),
+    )
+    .withColumn(
+        "month",
+        month(col("ingestion_timestamp")),
+    )
+    .withColumn(
+        "day",
+        dayofmonth(col("ingestion_timestamp")),
+    )
 )
 
 # Data-quality validation
@@ -64,11 +112,11 @@ validated_df = flattened_df.withColumn(
         lit("Current price must be greater than zero"),
     )
     .when(
-        col("event_timestamp").isNull() | (col("event_timestamp") <= 0),
-        lit("Invalid event timestamp"),
+        col("market_timestamp").isNull(),
+        lit("Invalid market timestamp"),
     )
     .when(
-        col("quote_timestamp").isNull(),
+        col("ingestion_timestamp").isNull(),
         lit("Invalid ingestion timestamp"),
     )
     .when(
@@ -80,9 +128,15 @@ validated_df = flattened_df.withColumn(
     .otherwise(lit(None)),
 )
 
+
 # Remove duplicate stock quotes
 
-validated_df = validated_df.dropDuplicates(["symbol", "event_timestamp"])
+validated_df = validated_df.dropDuplicates(["symbol", "market_timestamp"])
+
+
+# Separate valid and rejected records
+
+
 valid_quotes_df = validated_df.filter(col("validation_error").isNull()).drop(
     "validation_error"
 )
@@ -91,6 +145,7 @@ rejected_quotes_df = validated_df.filter(col("validation_error").isNotNull())
 
 
 # Data-quality metrics
+
 
 total_count = validated_df.count()
 valid_count = valid_quotes_df.count()
@@ -106,33 +161,38 @@ print(f"Total records: {total_count}")
 print(f"Valid records: {valid_count}")
 print(f"Rejected records: {rejected_count}")
 
+
+# Fail the job when no usable data exists
+
 if total_count == 0:
     raise ValueError("Data-quality validation failed: no records were found.")
 
 if valid_count == 0:
     raise ValueError(
-        "Data-quality validation failed: no valid records remain after validation."
+        "Data-quality validation failed: " "no valid records remain after validation."
     )
 
-# Output locations
 
-valid_output_path = "s3://aws-data-engineering-platform/processed/finnhub/quotes/"
+# Write rejected records to S3
 
-rejected_output_path = "s3://aws-data-engineering-platform/rejected/finnhub/quotes/"
+if rejected_count > 0:
+    (
+        rejected_quotes_df.write.mode("overwrite")
+        .partitionBy("year", "month", "day")
+        .parquet(rejected_output_path)
+    )
 
-# Write valid records
+
+#
+# Write valid records to Apache Iceberg
+#
 
 (
-    valid_quotes_df.write.mode("overwrite")
-    .partitionBy("year", "month", "day")
-    .parquet(valid_output_path)
+    valid_quotes_df.writeTo(iceberg_table)
+    .using("iceberg")
+    .partitionedBy("year", "month", "day")
+    .createOrReplace()
 )
 
-# Write rejected records
 
-(
-    rejected_quotes_df.write.mode("overwrite")
-    .partitionBy("year", "month", "day")
-    .parquet(rejected_output_path)
-)
 spark.stop()
