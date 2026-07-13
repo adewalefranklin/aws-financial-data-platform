@@ -1,5 +1,14 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_timestamp, year, month, dayofmonth
+from pyspark.sql.functions import (
+    col,
+    dayofmonth,
+    lit,
+    month,
+    to_timestamp,
+    trim,
+    when,
+    year,
+)
 
 spark = SparkSession.builder.appName("FinnhubQuotesToParquet").getOrCreate()
 
@@ -38,14 +47,92 @@ flattened_df = (
     .withColumn("day", dayofmonth("quote_timestamp"))
 )
 
-# Write Parquet
+# Data-quality validation
 
-output_path = "s3://aws-data-engineering-platform/processed/finnhub/quotes/"
-
-(
-    flattened_df.write.mode("overwrite")
-    .partitionBy("year", "month", "day")
-    .parquet(output_path)
+validated_df = flattened_df.withColumn(
+    "validation_error",
+    when(
+        col("symbol").isNull() | (trim(col("symbol")) == ""),
+        lit("Missing symbol"),
+    )
+    .when(
+        col("current_price").isNull(),
+        lit("Missing current price"),
+    )
+    .when(
+        col("current_price") <= 0,
+        lit("Current price must be greater than zero"),
+    )
+    .when(
+        col("event_timestamp").isNull() | (col("event_timestamp") <= 0),
+        lit("Invalid event timestamp"),
+    )
+    .when(
+        col("quote_timestamp").isNull(),
+        lit("Invalid ingestion timestamp"),
+    )
+    .when(
+        col("high_price").isNotNull()
+        & col("low_price").isNotNull()
+        & (col("high_price") < col("low_price")),
+        lit("High price cannot be lower than low price"),
+    )
+    .otherwise(lit(None)),
 )
 
+# Remove duplicate stock quotes
+
+validated_df = validated_df.dropDuplicates(["symbol", "event_timestamp"])
+valid_quotes_df = validated_df.filter(col("validation_error").isNull()).drop(
+    "validation_error"
+)
+
+rejected_quotes_df = validated_df.filter(col("validation_error").isNotNull())
+
+
+# Data-quality metrics
+
+total_count = validated_df.count()
+valid_count = valid_quotes_df.count()
+rejected_count = rejected_quotes_df.count()
+
+validation_summary = (
+    rejected_quotes_df.groupBy("validation_error").count().orderBy(col("count").desc())
+)
+
+validation_summary.show(truncate=False)
+
+print(f"Total records: {total_count}")
+print(f"Valid records: {valid_count}")
+print(f"Rejected records: {rejected_count}")
+
+if total_count == 0:
+    raise ValueError("Data-quality validation failed: no records were found.")
+
+if valid_count == 0:
+    raise ValueError(
+        "Data-quality validation failed: no valid records remain after validation."
+    )
+
+# Output locations
+
+valid_output_path = "s3://aws-data-engineering-platform/processed/finnhub/quotes/"
+
+rejected_output_path = "s3://aws-data-engineering-platform/rejected/finnhub/quotes/"
+
+# Write valid records
+
+(
+    valid_quotes_df.write.mode("overwrite")
+    .partitionBy("year", "month", "day")
+    .parquet(valid_output_path)
+)
+
+# Write rejected records
+
+(
+    rejected_quotes_df.write.mode("overwrite")
+    .partitionBy("year", "month", "day")
+    .parquet(rejected_output_path)
+)
 spark.stop()
