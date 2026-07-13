@@ -2,10 +2,7 @@ from src.project_pipeline.extract import Extract
 import pytest
 
 
-def test_extract_success(mocker, monkeypatch):
-    monkeypatch.setenv("FINNHUB_API_KEY", "fake_key")
-    monkeypatch.setenv("FINNHUB_BASE_URL", "http://fakeurl.com")
-
+def test_extract_success(mocker, mock_env):
     fake_response = mocker.Mock()
     fake_response.raise_for_status.return_value = None
     fake_response.json.return_value = {"data": "test_data"}
