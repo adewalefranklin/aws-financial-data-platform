@@ -5,19 +5,24 @@ __pycache__/
 *.pyc
 airflow.cfg
 # Terraform local working directories
-**/.terraform/
-
-# Terraform state
+# Terraform
+**/.terraform/*
 *.tfstate
 *.tfstate.*
-
-# Terraform plan files
-*.tfplan
-
-# Terraform crash logs
 crash.log
 crash.*.log
-
-# Sensitive variable files
 *.tfvars
 *.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# Terraform state
+terraform/*.tfstate
+terraform/*.tfstate.backup
+
+# Terraform working directory
+terraform/.terraform/
+
+# Crash logs
+crash.log
